@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Interactif Scrum - Avec Professeur 2D</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .professor-container {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+
+        .professor {
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 60px;
+            position: relative;
+            animation: float 3s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .professor-face {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+
+        .professor-glasses {
+            font-size: 30px;
+            position: absolute;
+            top: 45px;
+        }
+
+        .speech-bubble {
+            background: #f0f4ff;
+            padding: 20px;
+            border-radius: 15px;
+            position: relative;
+            flex: 1;
+            border: 2px solid #667eea;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .speech-bubble:before {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: 30px;
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-right: 15px solid #667eea;
+        }
+
+        .speech-bubble:after {
+            content: '';
+            position: absolute;
+            left: -11px;
+            top: 32px;
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-right: 12px solid #f0f4ff;
+        }
+
+        .question-container {
+            margin: 30px 0;
+        }
+
+        .question {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            border-radius: 8px;
+        }
+
+        .options {
+            display: grid;
+            gap: 15px;
+        }
+
+        .option {
+            padding: 18px 25px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.1em;
+        }
+
+        .option:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateX(5px);
+        }
+
+        .option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .option.correct {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        .option.incorrect {
+            background: #f44336;
+            color: white;
+            border-color: #f44336;
+        }
+
+        .option.disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-help {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-help:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .btn-help:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 10px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .welcome-screen, .results-screen {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .welcome-screen h2 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .welcome-screen p {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .results-screen h2 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .score-display {
+            font-size: 4em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 30px 0;
+        }
+
+        .feedback-message {
+            font-size: 1.3em;
+            color: #555;
+            margin: 20px 0;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            margin-top: 20px;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
+        }
+
+        .help-count {
+            background: white;
+            color: #f5576c;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .professor-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .speech-bubble:before,
+            .speech-bubble:after {
+                display: none;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 Quiz Interactif Scrum</h1>
+            <p>Testez vos connaissances avec l'aide de votre professeur virtuel !</p>
+        </div>
+
+        <div class="content" id="app">
+            <!-- Le contenu sera généré dynamiquement par JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // Base de données des questions
+        const questionsData = [
+            {
+                question: "Qui est responsable de maximiser la valeur du produit dans Scrum ?",
+                options: [
+                    "Le Scrum Master",
+                    "Le Product Owner",
+                    "L'équipe de développement",
+                    "Le client"
+                ],
+                correct: 1,
+                explanation: "Le Product Owner est le responsable unique de la gestion du Product Backlog et de maximiser la valeur du produit. Il définit les priorités, prend les décisions sur ce qui doit être développé et représente les parties prenantes auprès de l'équipe."
+            },
+            {
+                question: "Quelle est la durée maximale recommandée pour un Sprint ?",
+                options: [
+                    "2 semaines",
+                    "1 mois",
+                    "3 mois",
+                    "6 semaines"
+                ],
+                correct: 1,
+                explanation: "Selon le Guide Scrum, un Sprint dure maximum 1 mois (4 semaines). En pratique, la plupart des équipes utilisent des Sprints de 2 semaines. Cette durée permet d'avoir un cycle de feedback régulier tout en ayant suffisamment de temps pour livrer de la valeur."
+            },
+            {
+                question: "Quel est le rôle principal du Scrum Master ?",
+                options: [
+                    "Manager l'équipe de développement",
+                    "Décider des fonctionnalités à développer",
+                    "Faciliter et éliminer les obstacles",
+                    "Écrire le code"
+                ],
+                correct: 2,
+                explanation: "Le Scrum Master est un servant-leader qui facilite le processus Scrum, élimine les obstacles (impediments) qui bloquent l'équipe, et aide tout le monde à comprendre et appliquer les valeurs et principes Scrum. Ce n'est PAS un chef de projet traditionnel."
+            },
+            {
+                question: "Qu'est-ce que le Product Backlog ?",
+                options: [
+                    "La liste des bugs à corriger",
+                    "La liste ordonnée de tout ce qui pourrait être nécessaire dans le produit",
+                    "Le planning du prochain Sprint",
+                    "Les tâches terminées"
+                ],
+                correct: 1,
+                explanation: "Le Product Backlog est une liste ordonnée et évolutive de tout ce qui pourrait être nécessaire dans le produit. Il contient des fonctionnalités, des améliorations, des corrections de bugs, etc. Le Product Owner est responsable de son contenu, de sa disponibilité et de son ordre."
+            },
+            {
+                question: "Combien de temps dure le Daily Scrum (réunion quotidienne) ?",
+                options: [
+                    "15 minutes maximum",
+                    "30 minutes maximum",
+                    "1 heure maximum",
+                    "Pas de limite de temps"
+                ],
+                correct: 0,
+                explanation: "Le Daily Scrum est une réunion quotidienne de 15 minutes maximum où l'équipe de développement synchronise ses activités et crée un plan pour les prochaines 24 heures. C'est une réunion debout (stand-up) pour garder l'énergie et la brièveté."
+            },
+            {
+                question: "Que représente le Burndown Chart ?",
+                options: [
+                    "Le budget du projet",
+                    "Le nombre de développeurs",
+                    "Le travail restant au fil du temps",
+                    "La satisfaction du client"
+                ],
+                correct: 2,
+                explanation: "Le Burndown Chart est un graphique qui montre le travail restant (en story points ou en heures) par rapport au temps restant dans le Sprint. Il permet de visualiser la progression et d'identifier rapidement si l'équipe est sur la bonne voie pour terminer le Sprint."
+            },
+            {
+                question: "Quelle est une des valeurs fondamentales de Scrum ?",
+                options: [
+                    "Profit",
+                    "Courage",
+                    "Rapidité",
+                    "Compétition"
+                ],
+                correct: 1,
+                explanation: "Les 5 valeurs de Scrum sont : Engagement, Focus, Ouverture, Respect et Courage. Le courage signifie avoir le courage de faire les bonnes choses et de travailler sur des problèmes difficiles, d'admettre ses erreurs et de demander de l'aide quand nécessaire."
+            },
+            {
+                question: "Qui participe au Sprint Planning ?",
+                options: [
+                    "Seulement le Product Owner",
+                    "Seulement l'équipe de développement",
+                    "Toute l'équipe Scrum (PO, SM, Équipe Dev)",
+                    "Seulement le Scrum Master"
+                ],
+                correct: 2,
+                explanation: "Le Sprint Planning réunit toute l'équipe Scrum : le Product Owner présente les objectifs et les éléments du backlog, l'équipe de développement estime et planifie le travail, et le Scrum Master facilite la réunion. C'est un effort collaboratif."
+            },
+            {
+                question: "Que se passe-t-il lors de la Sprint Review ?",
+                options: [
+                    "L'équipe planifie le prochain Sprint",
+                    "L'équipe présente l'incrément terminé aux parties prenantes",
+                    "L'équipe fait sa rétrospective",
+                    "Le Product Owner définit les priorités"
+                ],
+                correct: 1,
+                explanation: "La Sprint Review est une réunion informelle à la fin du Sprint où l'équipe présente l'incrément terminé (produit fonctionnel) aux parties prenantes. On recueille les feedbacks qui peuvent influencer le Product Backlog et les prochains Sprints."
+            },
+            {
+                question: "Quelle est la taille idéale d'une équipe Scrum de développement ?",
+                options: [
+                    "1-3 personnes",
+                    "3-9 personnes",
+                    "10-15 personnes",
+                    "Plus de 20 personnes"
+                ],
+                correct: 1,
+                explanation: "L'équipe de développement devrait avoir entre 3 et 9 personnes. Moins de 3 limite les interactions et peut créer des manques de compétences. Plus de 9 nécessite trop de coordination. Cette taille permet une communication efficace et une agilité optimale."
+            },
+            {
+                question: "Qu'est-ce que le Sprint Backlog ?",
+                options: [
+                    "Tous les projets de l'entreprise",
+                    "Les éléments du Product Backlog sélectionnés pour le Sprint + plan pour les livrer",
+                    "Les bugs découverts pendant le Sprint",
+                    "Les congés de l'équipe"
+                ],
+                correct: 1,
+                explanation: "Le Sprint Backlog contient les éléments du Product Backlog sélectionnés pour le Sprint, plus un plan pour livrer l'incrément du produit et atteindre l'objectif du Sprint. Il est géré par l'équipe de développement et évolue durant le Sprint."
+            },
+            {
+                question: "Dans l'agilité, que signifie 'Les individus et leurs interactions' ?",
+                options: [
+                    "C'est moins important que les processus",
+                    "C'est plus important que les processus et les outils",
+                    "C'est égal aux processus",
+                    "Cela ne concerne que le management"
+                ],
+                correct: 1,
+                explanation: "C'est l'une des 4 valeurs du Manifeste Agile : 'Les individus et leurs interactions plus que les processus et les outils'. Cela signifie que même si les processus sont importants, la communication humaine, la collaboration et les interactions de l'équipe ont plus de valeur."
+            },
+            {
+                question: "Quelle cérémonie permet à l'équipe d'inspecter et d'améliorer son processus ?",
+                options: [
+                    "Le Daily Scrum",
+                    "Le Sprint Planning",
+                    "La Sprint Retrospective",
+                    "La Sprint Review"
+                ],
+                correct: 2,
+                explanation: "La Sprint Retrospective est une réunion à la fin du Sprint où l'équipe réfléchit sur le Sprint écoulé et identifie des améliorations concrètes pour le prochain Sprint. C'est le moment de l'amélioration continue du processus et des interactions de l'équipe."
+            },
+            {
+                question: "Que signifie 'Definition of Done' (DoD) ?",
+                options: [
+                    "La fin du projet",
+                    "Les critères qu'un incrément doit remplir pour être considéré comme terminé",
+                    "La signature du client",
+                    "La fin du Sprint"
+                ],
+                correct: 1,
+                explanation: "La Definition of Done est un accord partagé sur les critères qu'un incrément de produit doit satisfaire pour être considéré comme 'Terminé'. Elle peut inclure : code reviewé, testé, documenté, déployé, etc. Elle assure une compréhension commune de la qualité."
+            },
+            {
+                question: "Quelle valeur agile prône 'Répondre au changement' ?",
+                options: [
+                    "Plutôt que de suivre un plan rigide",
+                    "Plutôt que de communiquer avec le client",
+                    "Plutôt que de livrer du logiciel",
+                    "Plutôt que de documenter"
+                ],
+                correct: 0,
+                explanation: "Le Manifeste Agile valorise 'L'adaptation au changement plus que le suivi d'un plan'. Dans un monde complexe et changeant, la capacité à s'adapter rapidement aux nouvelles informations et besoins du client est plus précieuse qu'un plan détaillé établi au début."
+            }
+        ];
+
+        // État de l'application
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let helpsRemaining = 3;
+        let wrongAnswers = [];
+        let answerSelected = false;
+        let userAnswers = [];
+
+        // Messages du professeur
+        const professorMessages = {
+            welcome: "Bienvenue dans ce quiz sur Scrum ! 🎉 Je suis votre professeur virtuel et je vais vous accompagner tout au long de ce parcours. Vous disposez de 3 aides que vous pouvez utiliser à tout moment. Bonne chance !",
+            help: [
+                "Hmm, laissez-moi vous donner un indice... 🤔 Pensez à la responsabilité principale de ce rôle !",
+                "Je vais éliminer une réponse incorrecte pour vous aider ! ✨",
+                "Petit conseil : relisez bien la question et pensez aux principes fondamentaux de Scrum ! 💡"
+            ],
+            correct: [
+                "Excellent ! 🌟 Vous maîtrisez vraiment ce concept ! Continuez comme ça !",
+                "Bravo ! 👏 C'est exactement la bonne réponse ! Vous êtes sur la bonne voie !",
+                "Parfait ! 🎯 Vous avez une très bonne compréhension de Scrum !",
+                "Super ! 🚀 Votre connaissance de Scrum est impressionnante !"
+            ],
+            incorrect: [
+                "Pas tout à fait, mais ne vous découragez pas ! 💪 Chaque erreur est une opportunité d'apprentissage !",
+                "Ce n'est pas grave ! 😊 L'important est de comprendre pourquoi. Voyons ensemble...",
+                "Presque ! 🎓 Laissez-moi vous expliquer la nuance importante ici...",
+                "Ne vous inquiétez pas ! 🌱 C'est en pratiquant qu'on devient expert !"
+            ],
+            final: {
+                excellent: "Extraordinaire ! 🏆 Vous êtes un véritable expert Scrum ! Votre maîtrise des concepts est remarquable !",
+                good: "Très bien ! 🌟 Vous avez une bonne compréhension de Scrum ! Continuez à approfondir vos connaissances !",
+                average: "Bon effort ! 📚 Vous êtes sur la bonne voie ! Révisez les concepts et vous serez au top !",
+                needsWork: "Courage ! 💪 Scrum demande de la pratique. Utilisez le PDF pour réviser et réessayez !"
+            }
+        };
+
+        // Initialisation de l'application
+        function init() {
+            showWelcomeScreen();
+        }
+
+        // Écran de bienvenue
+        function showWelcomeScreen() {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="welcome-screen">
+                    <div class="professor-container" style="justify-content: center;">
+                        <div class="professor">
+                            <div class="professor-face">👨‍🏫</div>
+                            <div class="professor-glasses">👓</div>
+                        </div>
+                    </div>
+                    <h2>Bienvenue dans le Quiz Scrum ! 🎓</h2>
+                    <p>${professorMessages.welcome}</p>
+                    <div style="text-align: left; max-width: 600px; margin: 30px auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                        <h3 style="margin-bottom: 15px; color: #667eea;">📋 Règles du jeu :</h3>
+                        <ul style="line-height: 2; color: #555;">
+                            <li>✅ ${questionsData.length} questions sur les concepts Scrum</li>
+                            <li>🎯 Une seule réponse correcte par question</li>
+                            <li>💡 3 aides du professeur disponibles</li>
+                            <li>📝 Explications détaillées après chaque réponse</li>
+                            <li>📄 PDF de révision généré à la fin avec vos erreurs</li>
+                        </ul>
+                    </div>
+                    <button class="btn btn-primary" onclick="startQuiz()">Commencer le Quiz 🚀</button>
+                </div>
+            `;
+        }
+
+        // Démarrer le quiz
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            helpsRemaining = 3;
+            wrongAnswers = [];
+            userAnswers = [];
+            showQuestion();
+        }
+
+        // Afficher une question
+        function showQuestion() {
+            answerSelected = false;
+            const app = document.getElementById('app');
+            const question = questionsData[currentQuestionIndex];
+            const progress = ((currentQuestionIndex + 1) / questionsData.length) * 100;
+
+            app.innerHTML = `
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="emoji">📊</span>
+                        <span>Question ${currentQuestionIndex + 1}/${questionsData.length}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="emoji">⭐</span>
+                        <span>Score: ${score}/${currentQuestionIndex}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="emoji">💡</span>
+                        <span>Aides: ${helpsRemaining}/3</span>
+                    </div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${progress}%"></div>
+                </div>
+
+                <div class="professor-container">
+                    <div class="professor" id="professor">
+                        <div class="professor-face">👨‍🏫</div>
+                        <div class="professor-glasses">👓</div>
+                    </div>
+                    <div class="speech-bubble" id="speech">
+                        Lisez attentivement la question et prenez votre temps pour réfléchir ! 🤔
+                    </div>
+                </div>
+
+                <div class="question-container">
+                    <div class="question">${question.question}</div>
+                    <div class="options" id="options">
+                        ${question.options.map((option, index) => `
+                            <div class="option" onclick="selectAnswer(${index})" data-index="${index}">
+                                ${String.fromCharCode(65 + index)}. ${option}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-help" onclick="useHelp()" ${helpsRemaining === 0 ? 'disabled' : ''}>
+                        💡 Demander de l'aide
+                        <span class="help-count">${helpsRemaining}</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="validateAnswer()" id="validateBtn" disabled>
+                        Valider ma réponse ✓
+                    </button>
+                </div>
+            `;
+        }
+
+        // Sélectionner une réponse
+        function selectAnswer(index) {
+            if (answerSelected) return;
+
+            const options = document.querySelectorAll('.option');
+            options.forEach(opt => opt.classList.remove('selected'));
+            options[index].classList.add('selected');
+            
+            document.getElementById('validateBtn').disabled = false;
+            userAnswers[currentQuestionIndex] = index;
+        }
+
+        // Utiliser une aide
+        function useHelp() {
+            if (helpsRemaining === 0 || answerSelected) return;
+
+            helpsRemaining--;
+            const question = questionsData[currentQuestionIndex];
+            const speech = document.getElementById('speech');
+            
+            // Animation du professeur
+            const professor = document.getElementById('professor');
+            professor.style.animation = 'none';
+            setTimeout(() => {
+                professor.style.animation = 'float 3s ease-in-out infinite';
+            }, 10);
+
+            // Éliminer une mauvaise réponse
+            const options = document.querySelectorAll('.option');
+            const incorrectIndices = [];
+            
+            question.options.forEach((opt, index) => {
+                if (index !== question.correct) {
+                    incorrectIndices.push(index);
+                }
+            });
+
+            // Choisir aléatoirement une réponse incorrecte à éliminer
+            const toEliminate = incorrectIndices[Math.floor(Math.random() * incorrectIndices.length)];
+            options[toEliminate].style.opacity = '0.3';
+            options[toEliminate].style.pointerEvents = 'none';
+            options[toEliminate].innerHTML += ' <span style="color: red;">❌ (Éliminée)</span>';
+
+            speech.innerHTML = `J'ai éliminé une réponse incorrecte pour vous ! 💡 Il vous reste maintenant ${helpsRemaining} aide(s). Bonne chance !`;
+        }
+
+        // Valider la réponse
+        function validateAnswer() {
+            if (answerSelected) return;
+            answerSelected = true;
+
+            const question = questionsData[currentQuestionIndex];
+            const selectedIndex = userAnswers[currentQuestionIndex];
+            const options = document.querySelectorAll('.option');
+            const speech = document.getElementById('speech');
+
+            // Désactiver toutes les options
+            options.forEach(opt => opt.classList.add('disabled'));
+
+            // Colorier les réponses
+            options[question.correct].classList.add('correct');
+            if (selectedIndex !== question.correct) {
+                options[selectedIndex].classList.add('incorrect');
+            }
+
+            // Mise à jour du score et feedback
+            const isCorrect = selectedIndex === question.correct;
+            if (isCorrect) {
+                score++;
+                const randomCorrectMsg = professorMessages.correct[Math.floor(Math.random() * professorMessages.correct.length)];
+                speech.innerHTML = `
+                    <strong style="color: #4caf50; font-size: 1.2em;">${randomCorrectMsg}</strong>
+                    <p style="margin-top: 15px; color: #333;">${question.explanation}</p>
+                `;
+            } else {
+                wrongAnswers.push({
+                    question: question.question,
+                    correctAnswer: question.options[question.correct],
+                    userAnswer: question.options[selectedIndex],
+                    explanation: question.explanation
+                });
+                const randomIncorrectMsg = professorMessages.incorrect[Math.floor(Math.random() * professorMessages.incorrect.length)];
+                speech.innerHTML = `
+                    <strong style="color: #f44336; font-size: 1.2em;">${randomIncorrectMsg}</strong>
+                    <p style="margin-top: 15px; color: #333;"><strong>La bonne réponse était :</strong> ${question.options[question.correct]}</p>
+                    <p style="margin-top: 10px; color: #555;">${question.explanation}</p>
+                `;
+            }
+
+            // Changer le bouton
+            const validateBtn = document.getElementById('validateBtn');
+            validateBtn.textContent = currentQuestionIndex < questionsData.length - 1 ? 'Question suivante →' : 'Voir mes résultats 🎯';
+            validateBtn.onclick = nextQuestion;
+            validateBtn.disabled = false;
+        }
+
+        // Question suivante
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questionsData.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        // Afficher les résultats
+        function showResults() {
+            const app = document.getElementById('app');
+            const percentage = Math.round((score / questionsData.length) * 100);
+            let finalMessage = '';
+            
+            if (percentage >= 90) finalMessage = professorMessages.final.excellent;
+            else if (percentage >= 70) finalMessage = professorMessages.final.good;
+            else if (percentage >= 50) finalMessage = professorMessages.final.average;
+            else finalMessage = professorMessages.final.needsWork;
+
+            app.innerHTML = `
+                <div class="results-screen">
+                    <div class="professor-container" style="justify-content: center;">
+                        <div class="professor">
+                            <div class="professor-face">${percentage >= 70 ? '🎉' : '📚'}</div>
+                            <div class="professor-glasses">👓</div>
+                        </div>
+                    </div>
+                    <h2>Quiz Terminé ! 🎊</h2>
+                    <div class="score-display">${score}/${questionsData.length}</div>
+                    <div style="font-size: 2em; margin: 20px 0;">${percentage}%</div>
+                    <div class="feedback-message">${finalMessage}</div>
+                    
+                    <div style="text-align: left; max-width: 600px; margin: 30px auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                        <h3 style="margin-bottom: 15px; color: #667eea;">📊 Statistiques :</h3>
+                        <ul style="line-height: 2; color: #555;">
+                            <li>✅ Réponses correctes : ${score}</li>
+                            <li>❌ Réponses incorrectes : ${wrongAnswers.length}</li>
+                            <li>💡 Aides utilisées : ${3 - helpsRemaining}/3</li>
+                            <li>📈 Taux de réussite : ${percentage}%</li>
+                        </ul>
+                    </div>
+
+                    ${wrongAnswers.length > 0 ? `
+                        <p style="color: #666; margin: 20px 0;">
+                            📄 Téléchargez votre PDF de révision contenant les ${wrongAnswers.length} question(s) que vous avez manquée(s) avec les explications détaillées.
+                        </p>
+                        <button class="btn btn-download" onclick="generatePDF()">
+                            📥 Télécharger mon PDF de révision
+                        </button>
+                    ` : `
+                        <p style="color: #4caf50; font-size: 1.2em; margin: 20px 0;">
+                            🏆 Parfait ! Vous avez répondu correctement à toutes les questions !
+                        </p>
+                    `}
+                    
+                    <button class="btn btn-primary" onclick="init()" style="margin-top: 20px;">
+                        🔄 Recommencer le quiz
+                    </button>
+                </div>
+            `;
+        }
+
+        // Générer le PDF
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Configuration
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 20;
+            const maxWidth = pageWidth - 2 * margin;
+            let y = margin;
+
+            // Titre
+            doc.setFillColor(102, 126, 234);
+            doc.rect(0, 0, pageWidth, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.text('Quiz Scrum - Révision', pageWidth / 2, 25, { align: 'center' });
+
+            y = 50;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
+            doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, margin, y);
+            y += 10;
+            doc.text(`Score: ${score}/${questionsData.length} (${Math.round((score / questionsData.length) * 100)}%)`, margin, y);
+            y += 15;
+
+            doc.setFontSize(16);
+            doc.setTextColor(102, 126, 234);
+            doc.text(`Questions à réviser (${wrongAnswers.length})`, margin, y);
+            y += 15;
+
+            // Questions incorrectes
+            doc.setFontSize(11);
+            wrongAnswers.forEach((item, index) => {
+                // Vérifier si on a besoin d'une nouvelle page
+                if (y > pageHeight - 60) {
+                    doc.addPage();
+                    y = margin;
+                }
+
+                // Numéro de question
+                doc.setFillColor(244, 67, 54);
+                doc.circle(margin + 3, y - 2, 3, 'F');
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text(`Question ${index + 1}:`, margin + 10, y);
+                y += 8;
+
+                // Question
+                doc.setFont(undefined, 'normal');
+                doc.setFontSize(11);
+                const questionLines = doc.splitTextToSize(item.question, maxWidth - 10);
+                doc.text(questionLines, margin + 10, y);
+                y += questionLines.length * 6 + 5;
+
+                // Votre réponse
+                doc.setTextColor(244, 67, 54);
+                doc.setFont(undefined, 'bold');
+                doc.text('❌ Votre réponse:', margin + 10, y);
+                doc.setFont(undefined, 'normal');
+                y += 6;
+                const userAnswerLines = doc.splitTextToSize(item.userAnswer, maxWidth - 15);
+                doc.text(userAnswerLines, margin + 15, y);
+                y += userAnswerLines.length * 6 + 3;
+
+                // Bonne réponse
+                doc.setTextColor(76, 175, 80);
+                doc.setFont(undefined, 'bold');
+                doc.text('✓ Bonne réponse:', margin + 10, y);
+                doc.setFont(undefined, 'normal');
+                y += 6;
+                const correctAnswerLines = doc.splitTextToSize(item.correctAnswer, maxWidth - 15);
+                doc.text(correctAnswerLines, margin + 15, y);
+                y += correctAnswerLines.length * 6 + 3;
+
+                // Explication
+                doc.setTextColor(102, 126, 234);
+                doc.setFont(undefined, 'bold');
+                doc.text('💡 Explication:', margin + 10, y);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(80, 80, 80);
+                y += 6;
+                const explanationLines = doc.splitTextToSize(item.explanation, maxWidth - 15);
+                doc.text(explanationLines, margin + 15, y);
+                y += explanationLines.length * 6 + 10;
+
+                // Ligne de séparation
+                if (index < wrongAnswers.length - 1) {
+                    doc.setDrawColor(200, 200, 200);
+                    doc.line(margin, y, pageWidth - margin, y);
+                    y += 10;
+                }
+            });
+
+            // Pied de page sur la dernière page
+            doc.setFontSize(10);
+            doc.setTextColor(150, 150, 150);
+            doc.text('Généré par Quiz Scrum Interactif - Bonne révision ! 🎓', pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+            // Télécharger le PDF
+            doc.save(`Scrum_Quiz_Revision_${new Date().toISOString().split('T')[0]}.pdf`);
+        }
+
+        // Démarrer l'application
+        init();
+    </script>
+</body>
+</html>
